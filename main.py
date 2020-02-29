@@ -82,7 +82,7 @@ async def on_message(msg):
         elif get(member.roles, name='Member') is not None: return
         i = 2
         try:
-            while ws.cell(i, 2).value is not None:
+            while ws.cell(i, 1).value is not None:
                 if int(msg.content.strip()) == ws.cell(i, 2).value:
                     memberRole = get(server.roles, name='Member')
                     member = get(server.members, id=msg.author.id)
