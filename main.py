@@ -258,7 +258,7 @@ async def on_raw_reaction_remove(payload):
             'colour_red3','colour_orange3','colour_yellow3','colour_green3','colour_blue3','colour_purple3','colour_grey3']
             pairs = [[reactions[i],names[i]] for i in range(len(reactions))]
             for pair in pairs:
-                if emoji = pair[0]:
+                if emoji == pair[0]:
                     role = get(server.roles,name=pair[1])
                     if len(role.members) == 1: await role.delete()
                     else: await member.remove_roles(role)
