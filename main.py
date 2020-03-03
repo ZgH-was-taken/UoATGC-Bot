@@ -19,7 +19,7 @@ bot = commands.Bot(command_prefix='!', case_insensitive = True)
 bot.remove_command('help')
 
 wb = openpyxl.load_workbook('Member List.xlsx')
-ws = wb['Paid Members 2019']
+ws = wb['Sheet 1']
 
 
 @bot.event
@@ -63,19 +63,41 @@ async def on_ready():
                 if user is not botMember: await user.add_roles(role)
 
 
+@bot.command()
+async def colours(ctx):
+    if ctx.channel is not botChannel: return
+    msg = await botChannel.send('React for a pastel coloured role:')
+    reactions = ['❤️','🧡','💛','💚','💙','💜','🖤']
+    for reaction in reactions:
+        await msg.add_reaction(reaction)
+    msg = await botChannel.send('React for a light coloured role:')
+    reactions = ['🔴','🟠','🟡','🟢','🔵','🟣','⚫']
+    for reaction in reactions:
+        await msg.add_reaction(reaction)
+    msg = await botChannel.send('React for a dark coloured role:')
+    reactions = ['🟥','🟧','🟨','🟩','🟦','🟪','⬛']
+    for reaction in reactions:
+        await msg.add_reaction(reaction)
+
 welcomeMsg = '''Welcome to the TGC Discord! Be sure to read the server rules
 Reply with your Uni ID to be given the member role, or react with 🎲
 if you aren't from UoA to alert one of the exec members to message you
 '''
 @bot.event
 async def on_member_join(user):
-    await user.send(welcomeMsg)
-    msg = await execBotChannel.send(user.name + ' has joined the server')
+    if dt.datetime.now().hour >=10 and dt.datetime.now().hour <= 14:
+        await user.add_roles(get(server.roles,name='Member'))
+        await execBotChannel.send(user.name + ' has joined the server')
+        await generalChannel.send('Welcome, ' + user.mention + '!')
+        return
+    msg = await user.send(welcomeMsg)
+    await execBotChannel.send(user.name + ' has joined the server')
     await msg.add_reaction('🎲')
 
 
 @bot.event
 async def on_message(msg):
+    await bot.process_commands(msg)
     if msg.guild is None:
         member = get(server.members, id=msg.author.id)
         if msg.author is bot.user or member is None: return
@@ -85,13 +107,14 @@ async def on_message(msg):
             while ws.cell(i, 1).value is not None:
                 if int(msg.content.strip()) == ws.cell(i, 2).value:
                     memberRole = get(server.roles, name='Member')
-                    member = get(server.members, id=msg.author.id)
                     await member.add_roles(memberRole)
                     await generalChannel.send('Welcome, ' + member.mention + '!')
                     await execBotChannel.send(member.display_name + '/' + ws.cell(i,1).value + ' has joined as a member')
                     return
                 i += 1
+            await member.send('ID not found, react to ask exec to let you in manually')
         except ValueError:
+            await member.send('ID not found, react to ask exec to let you in manually')
             return
 
 
@@ -104,7 +127,7 @@ async def on_raw_reaction_add(payload):
         member = get(server.members, id=payload.user_id)
         if member is None: return
         if get(member.roles, name='Member') is None and emoji == '🎲':
-            await execBotChannel.send(execRole.mention + member.display_name + ' wants to be manually made a member of the server')
+            await execBotChannel.send(execRole.mention + ' ' + member.display_name + ' wants to be manually made a member of the server')
         return
     channel = get(server.channels, id=payload.channel_id)
     member = payload.member
@@ -145,11 +168,45 @@ async def on_raw_reaction_add(payload):
         if users is not None:
             if member in users:
                 await reaction.remove(member)
+    if channel is botChannel:
+        msg = await botChannel.fetch_message(payload.message_id)
+        if msg.content.startswith('React for a ') and msg.content.endswith(' coloured role:'):
+            if 'colour_' in [role.name[:7] for role in member.roles]: return
+            reactions = ['❤️','🧡','💛','💚','💙','💜','🖤',
+            '🔴','🟠','🟡','🟢','🔵','🟣','⚫',
+            '🟥','🟧','🟨','🟩','🟦','🟪','⬛']
+            names = ['colour_red1','colour_orange1','colour_yellow1','colour_green1','colour_blue1','colour_purple1','colour_grey1',
+            'colour_red2','colour_orange2','colour_yellow2','colour_green2','colour_blue2','colour_purple2','colour_grey2',
+            'colour_red3','colour_orange3','colour_yellow3','colour_green3','colour_blue3','colour_purple3','colour_grey3']
+            hexes = [0xffa0a0,0xffbf93,0xffeaa9,0xa6f1c8,0xa2defd,0xc09df0,0xe4cde2,
+            0xce3e3e,0xce7235,0xd4ab26,0x3dc482,0x398fd1,0x8545db,0x928b92,
+            0x8a1313,0x974a17,0x917311,0x0e6d34,0x103f8d,0x621997,0x464546]
+            triples = [[reactions[i],names[i],hexes[i]] for i in range(len(reactions))]
+            for triple in triples:
+                if emoji == triple[0]:
+                    role = get(server.roles,name=triple[1])
+                    if role is None:
+                        role = await server.create_role(name=triple[1], colour=discord.Colour(triple[2]))
+                    await member.add_roles(role)
+                    return
     if emoji == '🍆' or emoji == '🍑':
         msg = await channel.fetch_message(payload.message_id)
         if msg.author is botMember:
             await member.send('😉')
-        
+
+@bot.event
+async def on_member_update(before, after):
+    if after.roles != before.roles:
+        for role in after.roles:
+            if role in before.roles: continue
+            if role.name.startswith('colour_') and role.position == 1:
+                try:
+                    position = get(server.roles,name='Member').position
+                except NameError: return
+                for i in range(2,position+1):
+                    await server.roles[i].edit(position=i-1)
+                await role.edit(position=position)
+                return
 
 
 @bot.event
@@ -189,6 +246,22 @@ async def on_raw_reaction_remove(payload):
             await member.remove_roles(rpgRole)
         elif emoji == '🃏':
             await member.remove_roles(tcgRole)
+    if channel is botChannel:
+        msg = await channel.fetch_message(payload.message_id)
+        if msg.content.startswith('React for a ') and msg.content.endswith(' coloured role:'):
+            if 'colour_' in [role.name[:7] for role in member.roles]: return
+            reactions = ['❤️','🧡','💛','💚','💙','💜','🖤',
+            '🔴','🟠','🟡','🟢','🔵','🟣','⚫',
+            '🟥','🟧','🟨','🟩','🟦','🟪','⬛']
+            names = ['colour_red1','colour_orange1','colour_yellow1','colour_green1','colour_blue1','colour_purple1','colour_grey1',
+            'colour_red2','colour_orange2','colour_yellow2','colour_green2','colour_blue2','colour_purple2','colour_grey2',
+            'colour_red3','colour_orange3','colour_yellow3','colour_green3','colour_blue3','colour_purple3','colour_grey3']
+            pairs = [[reactions[i],names[i]] for i in range(len(reactions))]
+            for pair in pairs:
+                if emoji = pair[0]:
+                    role = get(server.roles,name=pair[1])
+                    if len(role.members) == 1: await role.delete()
+                    else: await member.remove_roles(role)
 
 
 async def reset():
