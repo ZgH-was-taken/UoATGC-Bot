@@ -249,7 +249,6 @@ async def on_raw_reaction_remove(payload):
     if channel is botChannel:
         msg = await channel.fetch_message(payload.message_id)
         if msg.content.startswith('React for a ') and msg.content.endswith(' coloured role:'):
-            if 'colour_' in [role.name[:7] for role in member.roles]: return
             reactions = ['❤️','🧡','💛','💚','💙','💜','🖤',
             '🔴','🟠','🟡','🟢','🔵','🟣','⚫',
             '🟥','🟧','🟨','🟩','🟦','🟪','⬛']
