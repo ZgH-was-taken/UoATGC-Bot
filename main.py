@@ -18,8 +18,8 @@ client = discord.Client()
 bot = commands.Bot(command_prefix='!', case_insensitive = True)
 bot.remove_command('help')
 
-wb = openpyxl.load_workbook('Member List.xlsx')
-ws = wb['Sheet 1']
+wb = openpyxl.load_workbook('2020 Member List.xlsx')
+ws = wb['Sheet1']
 
 
 @bot.event
@@ -85,11 +85,6 @@ if you aren't from UoA to alert one of the exec members to message you
 '''
 @bot.event
 async def on_member_join(user):
-    if dt.datetime.now().hour >=10 and dt.datetime.now().hour <= 14:
-        await user.add_roles(get(server.roles,name='Member'))
-        await execBotChannel.send(user.name + ' has joined the server')
-        await generalChannel.send('Welcome, ' + user.mention + '!')
-        return
     msg = await user.send(welcomeMsg)
     await execBotChannel.send(user.name + ' has joined the server')
     await msg.add_reaction('🎲')
@@ -105,7 +100,7 @@ async def on_message(msg):
         i = 2
         try:
             while ws.cell(i, 1).value is not None:
-                if int(msg.content.strip()) == ws.cell(i, 2).value:
+                if msg.content.strip() == str(ws.cell(i, 2).value):
                     memberRole = get(server.roles, name='Member')
                     await member.add_roles(memberRole)
                     await generalChannel.send('Welcome, ' + member.mention + '!')
@@ -115,7 +110,9 @@ async def on_message(msg):
             await member.send('ID not found, react to ask exec to let you in manually')
         except ValueError:
             await member.send('ID not found, react to ask exec to let you in manually')
-            return
+        return
+    if botMember.mentioned_in(msg):
+        await msg.channel.send('Bruh that\'s cringe')
 
 
 @bot.event
