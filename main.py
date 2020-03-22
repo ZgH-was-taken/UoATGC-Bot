@@ -85,12 +85,9 @@ if you aren't from UoA to alert one of the exec members to message you
 '''
 @bot.event
 async def on_member_join(user):
-    #msg = await user.send(welcomeMsg)
+    msg = await user.send(welcomeMsg)
     await execBotChannel.send(user.name + ' has joined the server')
-    memberRole = get(server.roles, name='Member')
-    await user.add_roles(memberRole)
-    await generalChannel.send('Welcome, ' + user.mention + '!')
-    #await msg.add_reaction('🎲')
+    await msg.add_reaction('🎲')
 
 
 @bot.event
