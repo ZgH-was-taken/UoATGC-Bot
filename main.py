@@ -85,9 +85,12 @@ if you aren't from UoA to alert one of the exec members to message you
 '''
 @bot.event
 async def on_member_join(user):
-    msg = await user.send(welcomeMsg)
+    #msg = await user.send(welcomeMsg)
     await execBotChannel.send(user.name + ' has joined the server')
-    await msg.add_reaction('🎲')
+    memberRole = get(server.roles, name='Member')
+    await user.add_roles(memberRole)
+    await generalChannel.send('Welcome, ' + user.mention + '!')
+    #await msg.add_reaction('🎲')
 
 
 @bot.event
@@ -112,6 +115,9 @@ async def on_message(msg):
             await member.send('ID not found, react to ask exec to let you in manually')
         return
     if botMember.mentioned_in(msg):
+        for member in server.members:
+            if member is not botMember and member.mentioned_in(msg):
+                return
         await msg.channel.send('Bruh that\'s cringe')
 
 
@@ -271,7 +277,7 @@ async def reset():
         else:
             await botMember.edit(nick=None)
 
-        if dt.datetime.today().weekday() != 6: continue
+        if dt.datetime.today().weekday() != 5: continue
         msg = await ruleChannel.fetch_message(roleMessageResetID)
         bgRole = get(server.roles, name='Board Games')
         rpgRole = get(server.roles, name='RPGs')
